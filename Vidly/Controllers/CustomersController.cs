@@ -5,6 +5,7 @@ using System.Linq;
 using System.Web;
 using System.Web.Mvc;
 using Vidly.Models;
+using Vidly.ViewModels;
 
 namespace Vidly.Controllers
 {
@@ -20,6 +21,63 @@ namespace Vidly.Controllers
         protected override void Dispose(bool disposing)
         {
             _context.Dispose();
+        }
+
+        public ActionResult NewCustomer()
+        {
+            var membershipType = _context.MembershipType.ToList();
+            var viewModel = new NewCustomerViewModel
+            {
+                MembershipTypes = membershipType
+            };
+            return View(viewModel);
+        }
+
+        [HttpPost]
+        public ActionResult SaveCustomer(Customer customer)
+        {
+            if(!ModelState.IsValid)
+            {
+                var viewModel = new NewCustomerViewModel
+                {
+                    Customer = customer,
+                    MembershipTypes = _context.MembershipType.ToList()
+                };
+
+                return View("NewCustomer", viewModel);
+            }
+
+            if (customer.Id == 0)
+                _context.Customers.Add(customer);
+
+            else
+            {
+                var customerInDb = _context.Customers.First(c => c.Id == customer.Id);
+                customerInDb.Name = customer.Name;
+                customerInDb.BirthDay = customer.BirthDay;
+                customerInDb.MembershipType = customer.MembershipType;
+                customerInDb.IsSubscribedToNewsletter = customer.IsSubscribedToNewsletter;
+            }
+
+            _context.SaveChanges();
+
+            return RedirectToAction("CustomersList", "Customers");
+        }
+
+        public ActionResult CustomersEdit(int id)
+        {
+            var customer = _context.Customers.SingleOrDefault(c => c.Id == id);
+
+            if (customer == null)
+                return HttpNotFound();
+
+            var viewModel = new NewCustomerViewModel
+            {
+                Customer = customer,
+                MembershipTypes = _context.MembershipType.ToList()
+            };
+
+            return View("NewCustomer", viewModel);
         }
 
         [Route("Customers/CustomersList")]
